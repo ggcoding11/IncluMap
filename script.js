@@ -1,3 +1,6 @@
+// script.js (versão ajustada para centralizar o marcador)
+
+// ====== Inicialização do mapa ======
 const map = L.map('map')
   .setView([-23.41139330567758, -51.93118538009486], 13);
 
@@ -120,7 +123,8 @@ searchBtn.addEventListener('click', () => {
   const found = markersList.find(p => p.nome.toLowerCase().includes(term));
   if (found) {
     const { lat, lng } = found.marker.getLatLng();
-    map.setView([lat, lng], 17, { animate: true });
+    // usa flyTo para centralizar o marcador
+    map.flyTo([lat, lng], 17, { animate: true });
     found.marker.openPopup();
   } else {
     alert('Nenhum local correspondente encontrado.');
