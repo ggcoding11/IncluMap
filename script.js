@@ -1,6 +1,3 @@
-// script.js
-
-// ====== Inicialização do mapa ======
 const map = L.map('map')
   .setView([-23.41139330567758, -51.93118538009486], 13);
 
@@ -30,23 +27,8 @@ const categorias = [
 // array global de { nome, marker, grupos: [value,...] }
 let markersList = [];
 
-/**
- * Gera de 1 a 3 categorias aleatórias para simular dados de atendimento.
- * Retorna um array de objetos da const categorias.
- */
-function gerarGruposPrioritarios() {
-  const quantidade = Math.floor(Math.random() * 3) + 1;
-  const shuffled = [...categorias].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, quantidade);
-}
-
-/**
- * Carrega POIs via Overpass e popula markersList.
- * Cada entrada de markersList terá:
- *   { nome: string, marker: L.Marker, grupos: [value,...] }
- */
+// ====== Carregamento de POIs via Overpass ======
 function loadPOIs() {
-  // remove marcadores antigos
   markersList.forEach(p => map.removeLayer(p.marker));
   markersList = [];
 
@@ -66,135 +48,81 @@ function loadPOIs() {
   `;
 
   fetch('https://overpass-api.de/api/interpreter', {
-    method:'POST',
-    body: query
+    method:'POST', body: query
   })
-    .then(r => r.json())
-    .then(data => {
-      data.elements.forEach(el => {
-        const tags = el.tags || {};
-        if (!tags['addr:street']) return; // pula sem endereço
+  .then(r => r.json())
+  .then(data => {
+    data.elements.forEach(el => {
+      const tags = el.tags || {};
+      if (!tags['addr:street']) return;
 
-        // monta dados básicos
-        const nome = tags.name || '(sem nome)';
-        let endereco = tags['addr:street'];
-        if (tags['addr:housenumber']) endereco += `, ${tags['addr:housenumber']}`;
+      const nome = tags.name || '(sem nome)';
+      let endereco = tags['addr:street'];
+      if (tags['addr:housenumber']) endereco += `, ${tags['addr:housenumber']}`;
 
-        // gera categorias simuladas
-        const gruposObjs = gerarGruposPrioritarios();
-        const gruposVals = gruposObjs.map(g => g.value);
+      // categorias simuladas
+      const gruposObjs = gerarGruposPrioritarios();
+      const valores = gruposObjs.map(g => g.value);
 
-        // monta HTML do popup
-        const htmlGrupos = `<br><em>Atende:</em><ul style="list-style:none;padding-left:0">` +
-          gruposObjs.map(g => `
-            <li style="display:flex;align-items:center;margin-bottom:4px">
-              <img src="assets/${g.icone}" width="24" height="24" class="me-2">
-              ${g.nome}
-            </li>
-          `).join('') +
-        `</ul>`;
+      // popup
+      const htmlGrupos = `<br><em>Atende:</em><ul style="list-style:none;padding-left:0">` +
+        gruposObjs.map(g => `
+          <li style="display:flex;align-items:center;margin-bottom:4px">
+            <img src="assets/${g.icone}" width="24" height="24" class="me-2">
+            ${g.nome}
+          </li>`).join('') +
+      `</ul>`;
+      const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}`;
 
-        const popupHTML = `
-          <strong>${nome}</strong><br>
-          ${endereco}
-          ${htmlGrupos}
-        `;
+      const marker = L.marker([el.lat, el.lon], { icon: iconePadrao })
+        .addTo(map)
+        .bindPopup(popupHTML);
 
-        // cria marker e adiciona ao mapa
-        const marker = L.marker([el.lat, el.lon], { icon: iconePadrao })
-          .addTo(map)
-          .bindPopup(popupHTML);
-
-        // guarda para autocomplete e filtro
-        markersList.push({ nome, marker, grupos: gruposVals });
-      });
-
-      // após recarregar marcadores, reaplica o filtro atual
-      applyFilters();
-    })
-    .catch(err => console.error('Erro ao carregar POIs:', err));
+      markersList.push({ nome, marker, grupos: valores });
+    });
+    applyFilters();
+  })
+  .catch(err => console.error('Erro ao carregar POIs:', err));
 }
-
-// recarrega quando o mapa estiver pronto e após cada movimento
 map.whenReady(loadPOIs);
 
-
-// ====== AUTOCOMPLETE & BUSCA POR NOME ======
-const input      = document.getElementById('search-input');
-const btnSearch  = document.getElementById('search-btn');
-const listEl     = document.getElementById('autocomplete-list');
-
-function renderSuggestions(arr) {
-  listEl.innerHTML = '';
-  arr.forEach(({ nome, marker }) => {
-    const li = document.createElement('li');
-    li.className = 'list-group-item list-group-item-action';
-    li.textContent = nome;
-    li.addEventListener('click', () => selectSuggestion(marker));
-    listEl.appendChild(li);
-  });
+// gera grupos simulados
+function gerarGruposPrioritarios() {
+  const count = Math.floor(Math.random() * 3) + 1;
+  const shuffled = [...categorias].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
 }
-
-function selectSuggestion(marker) {
-  const { lat, lng } = marker.getLatLng();
-  map.setView([lat, lng], 17, { animate: true });
-  marker.openPopup();
-  listEl.innerHTML = '';
-  input.value = '';
-}
-
-input.addEventListener('input', () => {
-  const term = input.value.trim().toLowerCase();
-  if (!term) return listEl.innerHTML = '';
-  const matches = markersList.filter(p =>
-    p.nome.toLowerCase().includes(term)
-  );
-  renderSuggestions(matches);
-});
-
-btnSearch.addEventListener('click', () => {
-  const term = input.value.trim().toLowerCase();
-  const match = markersList.find(p =>
-    p.nome.toLowerCase() === term
-  );
-  if (match) selectSuggestion(match.marker);
-});
-
 
 // ====== FILTROS ======
 const filterCheckboxes = document.querySelectorAll('.dropdown-menu input[type=checkbox]');
-
-/** 
- * Lê valores dos checkboxes marcados e retorna array de strings
- */
+filterCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
 function getSelectedFilters() {
   return Array.from(filterCheckboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
 }
-
-/**
- * Exibe ou oculta marcadores de acordo com os filtros selecionados.
- * - Se nenhum filtro estiver marcado, mostra tudo.
- * - Senão, mostra apenas quem tiver pelo menos uma categoria em comum.
- */
 function applyFilters() {
-    const selected = getSelectedFilters(); // ex: ['cadeirante','idoso']
-    markersList.forEach(({ marker, grupos }) => {
-      const match = selected.length === 0
-        ? true
-        // agora exige que **todas** as categorias selecionadas estejam em grupos
-        : selected.every(val => grupos.includes(val));
-  
-      if (match) {
-        if (!map.hasLayer(marker)) marker.addTo(map);
-      } else {
-        if (map.hasLayer(marker)) marker.remove();
-      }
-    });
-  }
+  const sel = getSelectedFilters();
+  markersList.forEach(({ marker, grupos }) => {
+    const ok = sel.length === 0 || sel.every(v => grupos.includes(v));
+    ok ? map.addLayer(marker) : map.removeLayer(marker);
+  });
+}
 
-// vincula a função a cada checkbox
-filterCheckboxes.forEach(cb =>
-  cb.addEventListener('change', applyFilters)
-);
+// ====== BUSCA ENTRE MARCADORES ======
+const searchInput = document.getElementById('search-input');
+const searchBtn   = document.getElementById('search-btn');
+
+searchBtn.addEventListener('click', () => {
+  const term = searchInput.value.trim().toLowerCase();
+  if (!term) return;
+
+  const found = markersList.find(p => p.nome.toLowerCase().includes(term));
+  if (found) {
+    const { lat, lng } = found.marker.getLatLng();
+    map.setView([lat, lng], 17, { animate: true });
+    found.marker.openPopup();
+  } else {
+    alert('Nenhum local correspondente encontrado.');
+  }
+});
