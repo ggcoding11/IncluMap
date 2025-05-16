@@ -1,0 +1,18 @@
+/* style.css */
+
+/* Faz o body ocupar 100% da altura e permite que #map cresça */
+html, body {
+  height: 100vh;
+}
+#map {
+  width: 100%;
+  /* flex-grow no markup já faz ocupar o restante */
+}
+
+.navbar {
+  height: 100px;
+}
+
+#autocomplete-list .dropdown-item {
+  cursor: pointer;
+}
