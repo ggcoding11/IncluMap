@@ -1,86 +1,94 @@
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IncluMap</title>
-  <!-- Bootstrap CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncluMap</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="d-flex flex-column bg-light text-dark">
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg bg-primary">
-    <div class="container">
-      <a class="navbar-brand text-white" href="#">IncluMap</a>
-    </div>
-  </nav>
-
-  <!-- Controles: centralizados e em tamanho maior -->
-  <div class="container my-4">
-    <div class="row justify-content-center">
-      <div class="col-12 col-md-8">
-        <div class="input-group input-group-lg">
-          
-          <!-- Campo de busca ampliado -->
-          <input
-            type="text"
-            id="search-input"
-            class="form-control"
-            placeholder="Buscar por nome..."
-          />
-          
-          <!-- Botão buscar -->
-          <button class="btn btn-primary" id="search-btn">Buscar</button>
-          
-          <!-- Dropdown de filtros -->
-          <button
-            class="btn btn-outline-primary dropdown-toggle"
-            type="button"
-            data-bs-toggle="dropdown"
-            data-bs-auto-close="outside"
-            aria-expanded="false"
-            id="filter-btn"
-          >
-            Filtros
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 220px;">
-            <li>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="cadeirante" id="filtro-cadeirante">
-                <label class="form-check-label" for="filtro-cadeirante">Cadeirante</label>
-              </div>
-            </li>
-            <li>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="autista" id="filtro-autista">
-                <label class="form-check-label" for="filtro-autista">Autista</label>
-              </div>
-            </li>
-            <li>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="baixa_visao" id="filtro-baixa-visao">
-                <label class="form-check-label" for="filtro-baixa-visao">Baixa Visão</label>
-              </div>
-            </li>
-          </ul>
-
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-primary">
+        <div class="container">
+            <a class="navbar-brand text-white" href="#">IncluMap</a>
         </div>
-      </div>
+    </nav>
+
+    <!-- Controles: centralizados e em tamanho maior -->
+    <div class="container my-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <div class="input-group input-group-lg">
+
+                    <!-- Campo de busca ampliado -->
+                    <input type="text" id="search-input" class="form-control" placeholder="Buscar por nome..." />
+
+                    <!-- Botão buscar -->
+                    <button class="btn btn-primary" id="search-btn">Buscar</button>
+
+                    <!-- Dropdown de filtros -->
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside" aria-expanded="false" id="filter-btn">
+                        Filtros
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 220px;">
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="cadeirante"
+                                    id="filtro-cadeirante">
+                                <label class="form-check-label" for="filtro-cadeirante">Cadeirante</label>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="autista" id="filtro-autista">
+                                <label class="form-check-label" for="filtro-autista">Autista</label>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="baixa_visao"
+                                    id="filtro-baixa-visao">
+                                <label class="form-check-label" for="filtro-baixa-visao">Baixa Visão</label>
+                            </div>
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  
-  <div id="map" class="flex-grow-1"></div>
 
-  
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
-  <script src="script.js"></script>
+    <div class="container">
+        <div class="row">
+            <div class="col-3 d-flex justify-content-center">oi</div>
+            <div class="col-9 d-flex justify-content-center">
+                <div id="map" style="height: 500px; width: 100%;">
+
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="script.js"></script>
 </body>
+
 </html>
