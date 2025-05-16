@@ -1,4 +1,4 @@
-// script.js (versão ajustada para centralizar o marcador)
+// script.js
 
 // ====== Inicialização do mapa ======
 const map = L.map('map')
@@ -30,8 +30,16 @@ const categorias = [
 // array global de { nome, marker, grupos: [value,...] }
 let markersList = [];
 
+// ====== Função para gerar 1–3 categorias aleatórias (simulação) ======
+function gerarGruposPrioritarios() {
+  const count = Math.floor(Math.random() * 3) + 1;
+  const shuffled = [...categorias].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
 // ====== Carregamento de POIs via Overpass ======
 function loadPOIs() {
+  // remove antigos
   markersList.forEach(p => map.removeLayer(p.marker));
   markersList = [];
 
@@ -51,59 +59,56 @@ function loadPOIs() {
   `;
 
   fetch('https://overpass-api.de/api/interpreter', {
-    method:'POST', body: query
+    method: 'POST',
+    body: query
   })
-  .then(r => r.json())
-  .then(data => {
-    data.elements.forEach(el => {
-      const tags = el.tags || {};
-      if (!tags['addr:street']) return;
+    .then(r => r.json())
+    .then(data => {
+      data.elements.forEach(el => {
+        const tags = el.tags || {};
+        if (!tags['addr:street']) return;
 
-      const nome = tags.name || '(sem nome)';
-      let endereco = tags['addr:street'];
-      if (tags['addr:housenumber']) endereco += `, ${tags['addr:housenumber']}`;
+        const nome = tags.name || '(sem nome)';
+        let endereco = tags['addr:street'];
+        if (tags['addr:housenumber']) endereco += `, ${tags['addr:housenumber']}`;
 
-      // categorias simuladas
-      const gruposObjs = gerarGruposPrioritarios();
-      const valores = gruposObjs.map(g => g.value);
+        const gruposObjs = gerarGruposPrioritarios();
+        const valores = gruposObjs.map(g => g.value);
 
-      // popup
-      const htmlGrupos = `<br><em>Atende:</em><ul style="list-style:none;padding-left:0">` +
-        gruposObjs.map(g => `
-          <li style="display:flex;align-items:center;margin-bottom:4px">
-            <img src="assets/${g.icone}" width="24" height="24" class="me-2">
-            ${g.nome}
-          </li>`).join('') +
-      `</ul>`;
-      const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}`;
+        const htmlGrupos = `<br><em>Atende:</em><ul style="list-style:none;padding-left:0">` +
+          gruposObjs.map(g => `
+            <li style="display:flex;align-items:center;margin-bottom:4px">
+              <img src="assets/${g.icone}" width="24" height="24" class="me-2">
+              ${g.nome}
+            </li>`).join('') +
+        `</ul>`;
 
-      const marker = L.marker([el.lat, el.lon], { icon: iconePadrao })
-        .addTo(map)
-        .bindPopup(popupHTML);
+        const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}`;
 
-      markersList.push({ nome, marker, grupos: valores });
-    });
-    applyFilters();
-  })
-  .catch(err => console.error('Erro ao carregar POIs:', err));
+        const marker = L.marker([el.lat, el.lon], { icon: iconePadrao })
+          .addTo(map)
+          .bindPopup(popupHTML);
+
+        markersList.push({ nome, marker, grupos: valores });
+      });
+
+      applyFilters();
+    })
+    .catch(err => console.error('Erro ao carregar POIs:', err));
 }
+
 map.whenReady(loadPOIs);
-
-// gera grupos simulados
-function gerarGruposPrioritarios() {
-  const count = Math.floor(Math.random() * 3) + 1;
-  const shuffled = [...categorias].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-}
 
 // ====== FILTROS ======
 const filterCheckboxes = document.querySelectorAll('.dropdown-menu input[type=checkbox]');
 filterCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
+
 function getSelectedFilters() {
   return Array.from(filterCheckboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
 }
+
 function applyFilters() {
   const sel = getSelectedFilters();
   markersList.forEach(({ marker, grupos }) => {
@@ -112,20 +117,66 @@ function applyFilters() {
   });
 }
 
-// ====== BUSCA ENTRE MARCADORES ======
+// ====== AUTOCOMPLETE E BUSCA ENTRE MARCADORES ======
 const searchInput = document.getElementById('search-input');
 const searchBtn   = document.getElementById('search-btn');
+const autoList    = document.getElementById('autocomplete-list');
 
+// Atualiza sugestões ao digitar
+searchInput.addEventListener('input', () => {
+  const term = searchInput.value.trim().toLowerCase();
+  autoList.innerHTML = '';
+
+  if (!term) {
+    autoList.classList.remove('show');
+    return;
+  }
+
+  const matches = markersList
+    .filter(p => p.nome.toLowerCase().includes(term))
+    .slice(0, 5);
+
+  if (matches.length === 0) {
+    autoList.classList.remove('show');
+    return;
+  }
+
+  matches.forEach(p => {
+    const li = document.createElement('li');
+    li.className = 'dropdown-item';
+    li.textContent = p.nome;
+    li.addEventListener('click', () => {
+      flyToMarker(p);
+      autoList.classList.remove('show');
+    });
+    autoList.appendChild(li);
+  });
+
+  autoList.classList.add('show');
+});
+
+// Fecha o dropdown ao clicar fora
+document.addEventListener('click', e => {
+  if (!searchInput.contains(e.target)) {
+    autoList.classList.remove('show');
+  }
+});
+
+// Centraliza e abre popup
+function flyToMarker(p) {
+  const { lat, lng } = p.marker.getLatLng();
+  map.flyTo([lat, lng], 17, { animate: true });
+  p.marker.openPopup();
+}
+
+// Busca completa ao clicar em “Buscar”
 searchBtn.addEventListener('click', () => {
   const term = searchInput.value.trim().toLowerCase();
   if (!term) return;
 
   const found = markersList.find(p => p.nome.toLowerCase().includes(term));
   if (found) {
-    const { lat, lng } = found.marker.getLatLng();
-    // usa flyTo para centralizar o marcador
-    map.flyTo([lat, lng], 17, { animate: true });
-    found.marker.openPopup();
+    flyToMarker(found);
   } else {
     alert('Nenhum local correspondente encontrado.');
   }

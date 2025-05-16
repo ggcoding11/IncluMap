@@ -12,3 +12,7 @@ html, body {
 .navbar {
   height: 60px;
 }
+
+#autocomplete-list .dropdown-item {
+  cursor: pointer;
+}
