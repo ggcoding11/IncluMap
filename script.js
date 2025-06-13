@@ -35,12 +35,28 @@ document.addEventListener("DOMContentLoaded", () => {
     return shuffled.slice(0, count);
   }
 
+  function configurarBotaoAvaliar(marker) {
+    marker.on("popupopen", () => {
+      setTimeout(() => {
+        const btn = document.querySelector(".avaliar-btn");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            const nome = btn.dataset.nome;
+            document.getElementById("avaliar-nome").value = nome;
+            document.getElementById("form-avaliacao").reset();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("avaliacaoModal")).show();
+            loadPOIs(); // Recarrega os marcadores e seus popups com as avaliações atualizadas
+          });
+        }
+      }, 200);
+    });
+  }
+
   function loadPOIs() {
     markersList.forEach(p => map.removeLayer(p.marker));
     markersList = [];
 
-    const b = map.getBounds();
-    const bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].join(',');
+    const bbox = '-23.7,-52.2,-23.2,-51.6';
 
     const query = `
       [out:json][timeout:25];
@@ -53,6 +69,50 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       out body;
     `;
+
+    // carrega empresas registradas manualmente
+    const empresasSalvas = JSON.parse(sessionStorage.getItem("empresas") || "[]");
+    empresasSalvas.forEach(emp => {
+      const htmlGrupos = `<br><em>Atende:</em><ul style="list-style:none;padding-left:0">` +
+        emp.grupos.map(v => {
+          const g = categorias.find(c => c.value === v);
+          return `<li style="display:flex;align-items:center;margin-bottom:4px">
+                    <img src="assets/${g.icone}" width="24" height="24" class="me-2">${g.nome}
+                  </li>`;
+        }).join('') + `</ul>`;
+
+      const avaliacoes = JSON.parse(sessionStorage.getItem("avaliacoes") || "[]")
+        .filter(av => av.nome === emp.nome);
+
+      const maxInicial = 5;
+      const mostrarTodas = false; // será usado no controle do botão
+
+      const htmlAvaliacoes = avaliacoes.length
+        ? (() => {
+            const visiveis = avaliacoes.slice(0, maxInicial);
+            const extras = avaliacoes.length > maxInicial;
+
+            return `
+              <br><em>Avaliações:</em>
+              <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
+                ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
+              </ul>
+              ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
+            `;
+          })()
+        : `<br><em>Ainda não há avaliações.</em>`;
+
+
+      const popupHTML = `<strong>${emp.nome}</strong><br>${emp.endereco}${htmlGrupos}${htmlAvaliacoes}
+        <br><button class="btn btn-sm btn-primary avaliar-btn mt-2" data-nome="${emp.nome}">Avaliar</button>`;
+
+      const marker = L.marker([emp.lat, emp.lng], { icon: iconePadrao })
+        .addTo(map)
+        .bindPopup(popupHTML);
+
+      configurarBotaoAvaliar(marker);
+      markersList.push({ nome: emp.nome, marker, grupos: emp.grupos });
+    });
 
     fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -79,13 +139,57 @@ document.addEventListener("DOMContentLoaded", () => {
               </li>`).join('') +
             `</ul>`;
 
-          const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}`;
+          const avaliacoes = JSON.parse(sessionStorage.getItem("avaliacoes") || "[]")
+            .filter(av => av.nome === nome);
+
+          const maxInicial = 5;
+          const mostrarTodas = false; // será usado no controle do botão
+
+          const htmlAvaliacoes = avaliacoes.length
+            ? (() => {
+                const visiveis = avaliacoes.slice(0, maxInicial);
+                const extras = avaliacoes.length > maxInicial;
+
+                return `
+                  <br><em>Avaliações:</em>
+                  <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
+                    ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
+                  </ul>
+                  ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
+                `;
+              })()
+            : `<br><em>Ainda não há avaliações.</em>`;
+
+          const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}${htmlAvaliacoes}
+            <br><button class="btn btn-sm btn-primary avaliar-btn mt-2" data-nome="${nome}">Avaliar</button>`;
 
           const marker = L.marker([el.lat, el.lon], { icon: iconePadrao })
             .addTo(map)
             .bindPopup(popupHTML);
 
-          markersList.push({ nome, marker, grupos: valores });
+          configurarBotaoAvaliar(marker);
+
+          // Botão "Mostrar mais avaliações"
+          marker.on("popupopen", () => {
+            setTimeout(() => {
+              const mostrarMaisBtn = document.querySelector(".mostrar-mais-btn");
+              if (mostrarMaisBtn) {
+                mostrarMaisBtn.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  e.stopPropagation(); // Impede que o evento de clique feche o popup
+
+                  const nome = mostrarMaisBtn.dataset.nome;
+                  const avaliacoes = JSON.parse(sessionStorage.getItem("avaliacoes") || "[]")
+                    .filter(av => av.nome === nome);
+
+                  const ul = document.querySelector(".avaliacoes-lista");
+                  ul.innerHTML = avaliacoes.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('');
+
+                  mostrarMaisBtn.remove(); // remove o botão após expandir
+                });
+              }
+            }, 100);
+          });
         });
 
         applyFilters();
@@ -267,13 +371,42 @@ document.addEventListener("DOMContentLoaded", () => {
                 </li>`;
       }).join('') + `</ul>`;
 
-    const popupHTML = `<strong>${nome}</strong><br>${endereco}<br><small>CNPJ: ${cnpj}</small>${htmlGrupos}`;
+    const avaliacoes = JSON.parse(sessionStorage.getItem("avaliacoes") || "[]")
+      .filter(av => av.nome === nome);
+
+    const maxInicial = 5;
+    const mostrarTodas = false; // será usado no controle do botão
+
+    const htmlAvaliacoes = avaliacoes.length
+      ? (() => {
+          const visiveis = avaliacoes.slice(0, maxInicial);
+          const extras = avaliacoes.length > maxInicial;
+
+          return `
+            <br><em>Avaliações:</em>
+            <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
+              ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
+            </ul>
+            ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
+          `;
+        })()
+      : `<br><em>Ainda não há avaliações.</em>`;
+    
+    const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}${htmlAvaliacoes}
+      <br><button class="btn btn-sm btn-primary avaliar-btn mt-2" data-nome="${nome}">Avaliar</button>`;
 
     const marker = L.marker([lat, lng], { icon: iconePadrao }).addTo(map).bindPopup(popupHTML);
+
+    configurarBotaoAvaliar(marker);
 
     markersList.push({ nome, marker, grupos });
 
     applyFilters();
+
+    // salva no sessionStorage
+    const empresas = JSON.parse(sessionStorage.getItem("empresas") || "[]");
+    empresas.push({ nome, endereco, lat, lng, grupos });
+    sessionStorage.setItem("empresas", JSON.stringify(empresas));
 
     document.getElementById("register-form").reset();
     document.getElementById("latlng").value = "";
@@ -282,5 +415,23 @@ document.addEventListener("DOMContentLoaded", () => {
       cadastroMarker = null;
     }
     bootstrap.Modal.getInstance(document.getElementById("registerModal")).hide();
+  });
+
+  document.getElementById("form-avaliacao").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const nome = document.getElementById("avaliar-nome").value;
+    const estrelas = document.getElementById("avaliar-estrelas").value;
+    const comentario = document.getElementById("avaliar-comentario").value;
+
+    const avaliacao = { nome, estrelas: Number(estrelas), comentario };
+
+    const anteriores = JSON.parse(sessionStorage.getItem("avaliacoes") || "[]");
+    anteriores.push(avaliacao);
+    sessionStorage.setItem("avaliacoes", JSON.stringify(anteriores));
+
+    alert("Obrigado pela sua avaliação!");
+    bootstrap.Modal.getInstance(document.getElementById("avaliacaoModal")).hide();
+    loadPOIs(); // Recarrega os marcadores e seus popups com as avaliações atualizadas
   });
 });

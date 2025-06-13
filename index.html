@@ -93,6 +93,41 @@
             </div>
             </div>
 
+            <!-- Modal de Avaliação -->
+            <div class="modal fade" id="avaliacaoModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                <form id="form-avaliacao">
+                    <div class="modal-header">
+                    <h5 class="modal-title">Avaliar Local</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                    <input type="hidden" id="avaliar-nome">
+                    <div class="mb-3">
+                        <label for="avaliar-estrelas" class="form-label">Nota:</label>
+                        <select id="avaliar-estrelas" class="form-select" required>
+                        <option value="">Selecione</option>
+                        <option value="5">⭐⭐⭐⭐⭐</option>
+                        <option value="4">⭐⭐⭐⭐</option>
+                        <option value="3">⭐⭐⭐</option>
+                        <option value="2">⭐⭐</option>
+                        <option value="1">⭐</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="avaliar-comentario" class="form-label">Comentário:</label>
+                        <textarea id="avaliar-comentario" class="form-control" rows="3" required></textarea>
+                    </div>
+                    </div>
+                    <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Enviar Avaliação</button>
+                    </div>
+                </form>
+                </div>
+            </div>
+            </div>
+
         </div>
     </nav>
 
