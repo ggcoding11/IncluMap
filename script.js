@@ -89,17 +89,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const htmlAvaliacoes = avaliacoes.length
         ? (() => {
-            const visiveis = avaliacoes.slice(0, maxInicial);
-            const extras = avaliacoes.length > maxInicial;
+          const visiveis = avaliacoes.slice(0, maxInicial);
+          const extras = avaliacoes.length > maxInicial;
 
-            return `
+          return `
               <br><em>Avaliações:</em>
               <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
                 ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
               </ul>
               ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
             `;
-          })()
+        })()
         : `<br><em>Ainda não há avaliações.</em>`;
 
 
@@ -147,17 +147,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const htmlAvaliacoes = avaliacoes.length
             ? (() => {
-                const visiveis = avaliacoes.slice(0, maxInicial);
-                const extras = avaliacoes.length > maxInicial;
+              const visiveis = avaliacoes.slice(0, maxInicial);
+              const extras = avaliacoes.length > maxInicial;
 
-                return `
+              return `
                   <br><em>Avaliações:</em>
                   <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
                     ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
                   </ul>
                   ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
                 `;
-              })()
+            })()
             : `<br><em>Ainda não há avaliações.</em>`;
 
           const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}${htmlAvaliacoes}
@@ -168,6 +168,12 @@ document.addEventListener("DOMContentLoaded", () => {
             .bindPopup(popupHTML);
 
           configurarBotaoAvaliar(marker);
+
+          markersList.push({
+            nome: nome,
+            marker: marker,
+            grupos: valores
+          });
 
           // Botão "Mostrar mais avaliações"
           marker.on("popupopen", () => {
@@ -379,19 +385,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const htmlAvaliacoes = avaliacoes.length
       ? (() => {
-          const visiveis = avaliacoes.slice(0, maxInicial);
-          const extras = avaliacoes.length > maxInicial;
+        const visiveis = avaliacoes.slice(0, maxInicial);
+        const extras = avaliacoes.length > maxInicial;
 
-          return `
+        return `
             <br><em>Avaliações:</em>
             <ul class="avaliacoes-lista" style="padding-left: 16px; font-size: 0.9em">
               ${visiveis.map(av => `<li>⭐ ${av.estrelas}/5 - ${av.comentario}</li>`).join('')}
             </ul>
             ${extras ? `<button class="btn btn-link btn-sm p-0 mt-1 mostrar-mais-btn" data-nome="${nome}">Mostrar mais avaliações (${avaliacoes.length - maxInicial})</button>` : ""}
           `;
-        })()
+      })()
       : `<br><em>Ainda não há avaliações.</em>`;
-    
+
     const popupHTML = `<strong>${nome}</strong><br>${endereco}${htmlGrupos}${htmlAvaliacoes}
       <br><button class="btn btn-sm btn-primary avaliar-btn mt-2" data-nome="${nome}">Avaliar</button>`;
 
